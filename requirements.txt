@@ -1,0 +1,107 @@
+mkdir eshop && cd eshop
+
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\\Scripts\\activate
+
+pip install fastapi uvicorn[standard] sqlalchemy alembic psycopg2-binary python-keycloak redis aio-pika python-dotenv
+
+alembic init alembic
+
+DB_URL=postgresql+psycopg2://postgres:password@localhost:5432/eshop
+REDIS_URL=redis://localhost
+
+pip install python-dotenv
+
+pip install psycopg2-binary
+
+psycopg2-binary>=2.9
+-----------------------------------------------------------------------------------------------
+phase 2 
+
+mkdir bootstrapper shared\database modules\identity modules\catalog
+touch main.py bootstrapper/startup.py shared/database/session.py modules/identity/__init__.py modules/catalog/__init__.py
+
+or 
+
+echo. > main.py
+mkdir bootstrapper
+echo. > bootstrapper\startup.py
+mkdir shared\database
+echo. > shared\database\session.py
+mkdir modules\identity
+echo. > modules\identity\__init__.py
+mkdir modules\catalog
+echo. > modules\catalog\__init__.py
+
+Then you can start filling in:
+
+    main.py: to initialize the FastAPI app
+
+    startup.py: to register services and modules
+
+    session.py: for SQLAlchemy engine/session setup
+
+    identity: for login routes/services
+
+    catalog: for a product create use case
+
+------------------------------------------------------------------------------------------------------------------------
+RUN application  : uvicorn app.main:app --reload
+
+# Tech Summary
+- FastAPI for API
+- SQLAlchemy + Alembic for DB (PostgreSQL)
+- Redis (Basket module caching)
+- RabbitMQ (Ordering events)
+- Keycloak for Auth
+- DDD + CQRS + Vertical Slice
+
+
+# Basket uses Redis-py; Ordering uses aio-pika (RabbitMQ) to emit order events.
+
+pip install redis
+
+
+# Identity login route issues access token from Keycloak
+
+
+---------------------------------------------------------------------------------------------------------------
+
+
+eshop/
+├── app/
+│   ├── main.py
+│   ├── bootstrapper/
+│   │   └── startup.py
+│   ├── shared/
+│   │   ├── base/entity.py
+│   │   ├── base/value_object.py
+│   │   ├── base/aggregate_root.py
+│   │   ├── database/session.py
+│   │   └── result.py
+│   ├── modules/
+│   │   ├── catalog/
+│   │   │   ├── domain/product.py
+│   │   │   ├── application/commands/create_product.py
+│   │   │   ├── infrastructure/product_repository.py
+│   │   │   └── presentation/routes.py
+│   │   ├── basket/
+│   │   │   ├── infrastructure/redis_client.py
+│   │   │   ├── domain/basket.py
+│   │   │   ├── application/commands/add_to_basket.py
+│   │   │   └── presentation/routes.py
+│   │   ├── ordering/
+│   │   │   ├── infrastructure/event_publisher.py
+│   │   │   ├── domain/order.py
+│   │   │   ├── application/commands/create_order.py
+│   │   │   └── presentation/routes.py
+│   │   └── identity/
+│   │       ├── domain/user.py
+│   │       ├── application/commands/login_user.py
+│   │       ├── infrastructure/keycloak_auth.py
+│   │       └── presentation/routes.py
+├── alembic/
+│   └── migrations
+├── requirements.txt
+├── .env
+└── README.md
