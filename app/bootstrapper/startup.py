@@ -1,13 +1,53 @@
- 
-def setup(app):
-    from app.modules.catalog.presentation.routes import router as catalog_router
-    from app.modules.basket.presentation.routes import router as basket_router
-    from app.modules.ordering.presentation.routes import router as ordering_router
-    from app.modules.identity.presentation.routes import router as identity_router
+from punq import Container
+import redis
 
-    app.include_router(catalog_router, prefix="/catalog")
-    app.include_router(basket_router, prefix="/basket")
-    app.include_router(ordering_router, prefix="/orders")
-    app.include_router(identity_router, prefix="/auth")
+# Catalog Imports
+from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.application.commands.create_product import CreateProductCommand
+from app.modules.catalog.application.commands.get_products import GetProductsCommand
+from app.modules.catalog.application.commands.update_product import UpdateProductCommand
+from app.modules.catalog.application.commands.delete_product import DeleteProductCommand
 
-    # TODO: Initialize DB, Redis, RabbitMQ, middleware etc.
+# Basket Imports
+from app.modules.basket.infrastructure.repositories import BasketRepository
+from app.modules.basket.application.commands.basket_commands import (
+    CreateOrUpdateBasketCommand,
+    GetBasketCommand,
+    AddItemToBasketCommand,
+    RemoveItemFromBasketCommand,
+    DeleteBasketCommand,
+)
+
+_container = None
+
+def get_container():
+    global _container
+    if _container is None:
+        container = Container()
+
+        #  Register Product services
+        container.register(ProductRepository)
+        container.register(CreateProductCommand)
+        container.register(GetProductsCommand)
+        container.register(UpdateProductCommand)
+        container.register(DeleteProductCommand)
+
+        redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+        container.register(redis.Redis, instance=redis_client)
+        #  Register Basket services
+        configure_services(container)
+
+        _container = container
+
+    return _container
+
+def configure_services(container: Container):
+    # Register the repository
+    container.register(BasketRepository, BasketRepository)
+
+    # Register all basket commands
+    container.register(CreateOrUpdateBasketCommand, CreateOrUpdateBasketCommand)
+    container.register(GetBasketCommand, GetBasketCommand)
+    container.register(AddItemToBasketCommand, AddItemToBasketCommand)
+    container.register(RemoveItemFromBasketCommand, RemoveItemFromBasketCommand)
+    container.register(DeleteBasketCommand, DeleteBasketCommand)

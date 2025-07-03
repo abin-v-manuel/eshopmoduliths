@@ -1,35 +1,48 @@
-from fastapi import APIRouter, HTTPException
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
-from app.modules.catalog.presentation.schemas import ProductCreate, ProductRead
+from fastapi import APIRouter
+from app.bootstrapper.startup import get_container
+from app.modules.catalog.application.commands.create_product import CreateProductCommand
+from app.modules.catalog.application.commands.get_products import GetProductsCommand
+from app.modules.catalog.application.commands.update_product import UpdateProductCommand
+from app.modules.catalog.application.commands.delete_product import DeleteProductCommand
+from app.modules.catalog.application.dto.product_create_dto import ProductRequest
 
-router = APIRouter()
-repo = ProductRepository()
+router = APIRouter()  # Ensures URL is like /catalog/products
 
-@router.post("/", response_model=ProductRead)
-def create_product(product: ProductCreate):
-    return repo.create(product.name, product.price)
+@router.post("/products")
+def create_product(request: ProductRequest):
+    product = request.Product
+    container = get_container()
+    handler = container.resolve(CreateProductCommand)
+    return handler.execute(
+        product.Name,
+        product.Category,
+        product.Description,
+        product.ImageFile,
+        product.Price
+    )
 
-@router.get("/", response_model=list[ProductRead])
+@router.get("/products")
 def get_products():
-    return repo.get_all()
+    container = get_container()
+    handler = container.resolve(GetProductsCommand)
+    return handler.execute()
 
-@router.get("/{product_id}", response_model=ProductRead)
-def get_product(product_id: int):
-    product = repo.get_by_id(product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product
+@router.put("/products/{product_id}")
+def update_product(product_id: int, request: ProductRequest):
+    product = request.Product
+    container = get_container()
+    handler = container.resolve(UpdateProductCommand)
+    return handler.execute(
+        product_id,
+        product.Name,
+        product.Category,
+        product.Description,
+        product.ImageFile,
+        product.Price
+    )
 
-@router.put("/{product_id}", response_model=ProductRead)
-def update_product(product_id: int, product: ProductCreate):
-    updated = repo.update(product_id, product.name, product.price)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return updated
-
-@router.delete("/{product_id}")
+@router.delete("/products/{product_id}")
 def delete_product(product_id: int):
-    deleted = repo.delete(product_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return {"detail": "Product deleted"}
+    container = get_container()
+    handler = container.resolve(DeleteProductCommand)
+    return handler.execute(product_id)

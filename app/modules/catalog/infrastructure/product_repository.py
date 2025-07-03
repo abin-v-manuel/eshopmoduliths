@@ -1,3 +1,5 @@
+# app/modules/catalog/infrastructure/product_repository.py
+
 from app.shared.database.session import SessionLocal
 from app.modules.catalog.infrastructure.models import ProductModel
 
@@ -5,47 +7,40 @@ class ProductRepository:
     def __init__(self):
         self.db = SessionLocal()
 
-    def create(self, name: str, price: float) -> ProductModel:
-        product = ProductModel(name=name, price=price)
+    def create_product(self, name, category, description, image_file, price):
+        product = ProductModel(
+            name=name,
+            category=category,
+            description=description,
+            image_file=image_file,
+            price=price
+        )
         self.db.add(product)
         self.db.commit()
         self.db.refresh(product)
         return product
 
+
     def get_all(self):
         return self.db.query(ProductModel).all()
-
-    def get_by_id(self, product_id: int):
-        return self.db.query(ProductModel).filter(ProductModel.id == product_id).first()
-
-    def update(self, product_id: int, name: str, price: float):
-        product = self.get_by_id(product_id)
+    
+    def update(self, product_id, name, category, description, image_file, price):
+        product = self.db.query(ProductModel).get(product_id)
         if product:
             product.name = name
+            product.category = category
+            product.description = description
+            product.image_file = image_file
             product.price = price
             self.db.commit()
             self.db.refresh(product)
-        return product
+            return product
+        return None
 
-    def delete(self, product_id: int):
-        product = self.get_by_id(product_id)
+    def delete(self, product_id):
+        product = self.db.query(ProductModel).get(product_id)
         if product:
             self.db.delete(product)
             self.db.commit()
-        return product
-
-# class ProductRepository:
-#     def create(self, name: str, price: float):
-#         db = SessionLocal()
-#         try:
-#             product = ProductModel(name=name, price=price)
-#             db.add(product)
-#             db.commit()
-#             db.refresh(product)
-#             return product
-#         except Exception as e:
-#             db.rollback()
-#             print("Error:", e)
-#             raise e
-#         finally:
-#             db.close()
+            return {"message": "Product deleted"}
+        return {"error": "Product not found"}

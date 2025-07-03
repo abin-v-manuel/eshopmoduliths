@@ -2,7 +2,6 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
 from app.shared.database.session import Base
 from app.modules.catalog.domain import product  # Import your model
 from app.modules.catalog.infrastructure.models import ProductModel

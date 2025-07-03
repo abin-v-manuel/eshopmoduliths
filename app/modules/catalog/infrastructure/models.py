@@ -1,12 +1,13 @@
-import uuid
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, String, Float
+from sqlalchemy import Column, Integer, String, Float, Text
+from sqlalchemy.dialects.postgresql import ARRAY
 from app.shared.database.session import Base
-from sqlalchemy import Integer
 
 class ProductModel(Base):
     __tablename__ = "products"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
+    category = Column(ARRAY(String))  # PostgreSQL array
+    description = Column(Text)
+    image_file = Column(String)
+    price = Column(Float)
